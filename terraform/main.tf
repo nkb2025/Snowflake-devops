@@ -18,21 +18,18 @@ terraform {
 provider "snowflake" {
 }
 
-resource "snowflake_database" "demo_tfm_db" {
+resource "snowflake_database" "DEMO_DB" {
   name    = "DEMO_DB"
   comment = "Dev Database for Snowflake Terraform demo"
 }
 
-
-
-
-resource "snowflake_database" "test_tfm_db" {
+resource "snowflake_database" "TEST_DB" {
   name    = "TEST_DB"
   comment = "Test Database for Snowflake Terraform demo"
 }
 
 
-resource "snowflake_database" "prod_tfm_db" {
+resource "snowflake_database" "PROD_DB" {
   name    = "PROD_DB"
   comment = "Prod Database for Snowflake Terraform demo"
 }
