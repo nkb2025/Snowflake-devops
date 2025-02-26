@@ -85,7 +85,9 @@ jobs:
         uses: actions/setup-python@v2.2.1
         with:
           python-version: 3.8.x
-
+      - name: Debug Environment
+        run: echo "ENVIRONMENT=${{ env.ENVIRONMENT }}"
+    
       - name: Run schemachange
         env:
           SF_ACCOUNT: ${{ secrets[env.ENVIRONMENT == 'dev' && 'SF_ACCOUNT' || env.ENVIRONMENT == 'test' && 'SF_ACCOUNT' || env.ENVIRONMENT == 'prod' && 'SF_ACCOUNT'] }}
