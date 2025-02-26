@@ -41,6 +41,7 @@ jobs:
             echo "NAME=prod" >> $GITHUB_ENV
           else
             echo "NAME=unknown" >> $GITHUB_ENV
+          fi
 
       - name: Terraform Format
         id: fmt
