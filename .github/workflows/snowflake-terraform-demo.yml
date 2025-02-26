@@ -4,8 +4,8 @@ on:
   push:
     branches:
       - '*'
-      - '!develop' # Exclude develop
-      - '!main'    # Exclude main
+      - '!develop'
+      - '!main'
   pull_request:
     branches:
       - develop
@@ -88,9 +88,10 @@ jobs:
         uses: actions/setup-python@v2.2.1
         with:
           python-version: 3.8.x
+
       - name: Debug Environment
         run: echo "ENVIRONMENT=${{ env.ENVIRONMENT }}"
-    
+
       - name: Run schemachange
         env:
           SF_ACCOUNT: ${{ secrets[env.ENVIRONMENT == 'dev' && 'SF_ACCOUNT' || env.ENVIRONMENT == 'test' && 'SF_ACCOUNT' || env.ENVIRONMENT == 'prod' && 'SF_ACCOUNT'] }}
@@ -109,6 +110,5 @@ jobs:
           echo "DEBUG: SF_WAREHOUSE=${{ secrets[env.ENVIRONMENT == 'dev' && 'SF_WAREHOUSE' || env.ENVIRONMENT == 'test' && 'SF_WAREHOUSE' || env.ENVIRONMENT == 'prod' && 'SF_WAREHOUSE'] }}"
           echo "DEBUG: SF_DATABASE=${{ secrets[env.ENVIRONMENT == 'dev' && 'DEV_SF_DATABASE' || env.ENVIRONMENT == 'test' && 'TEST_SF_DATABASE' || env.ENVIRONMENT == 'prod' && 'PROD_SF_DATABASE'] }}"
           echo "DEBUG: SNOWFLAKE_PASSWORD=${{ secrets[env.ENVIRONMENT == 'dev' && 'SF_PASSWORD' || env.ENVIRONMENT == 'test' && 'SF_PASSWORD' || env.ENVIRONMENT == 'prod' && 'SF_PASSWORD'] }}"
-                
           echo "Step 2: Running schemachange for ${{ env.ENVIRONMENT }}"
           schemachange -f $GITHUB_WORKSPACE/migrations -a $SF_ACCOUNT -u $SF_USERNAME -r $SF_ROLE -w $SF_WAREHOUSE -d $SF_DATABASE -c $SF_DATABASE.SCHEMACHANGE.CHANGE_HISTORY --create-change-history-table
