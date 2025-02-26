@@ -3,6 +3,7 @@ name: "Snowflake DevOps Workflow"
 on:
   push:
     branches:
+      - '*'
       - '!develop' # Exclude develop
       - '!main'    # Exclude main
   pull_request:
