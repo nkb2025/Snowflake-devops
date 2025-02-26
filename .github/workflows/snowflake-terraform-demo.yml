@@ -43,6 +43,7 @@ jobs:
             echo "NAME=unknown" >> $GITHUB_ENV
           fi
 
+          
       - name: Terraform Format
         id: fmt
         run: terraform fmt -check
@@ -68,11 +69,27 @@ jobs:
       - uses: actions/github-script@0.9.0
         if: github.event_name == 'pull_request'
         env:
-          PLAN: "terraform\n${{ steps.plan.outputs.stdout }}"
+          PLAN: ${{ steps.plan.outputs.stdout }}
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            # ... (your existing pull request comment script)
+            const { GITHUB_WORKSPACE, github } = process.env;
+            const fs = require('fs');
+            
+            const planOutput = process.env.PLAN;
+            const pr = github.context.payload.pull_request;
+            const issueComment = github.getOctokit(githubToken);
+      
+            if (!pr) {
+              throw new Error("Could not find PR context.");
+            }
+      
+            await issueComment.rest.issues.createComment({
+              ...github.context.repo,
+              issue_number: pr.number,
+              body: `### Terraform Plan Output\n\`\`\`terraform\n${planOutput}\n\`\`\``
+            });
+      
 
       - name: Terraform Plan Status
         if: steps.plan.outcome == 'failure'
