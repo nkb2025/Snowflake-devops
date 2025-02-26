@@ -30,20 +30,19 @@ jobs:
       - name: Determine Environment
         id: env
         run: |
-  run: |
-        echo "EVENT_NAME=${{ github.event_name }}"
-        echo "REF=${{ github.ref }}"
-        echo "BASE_REF=${{ github.base_ref }}"
-        if [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" != "refs/heads/develop" && "${{ github.ref }}" != "refs/heads/main" ]]; then
-          echo "::set-output name=NAME::dev"
-        elif [[ "${{ github.event_name }}" == "pull_request" && "${{ github.base_ref }}" == "refs/heads/develop" ]]; then
-          echo "::set-output name=NAME::test"
-        elif [[ "${{ github.event_name }}" == "pull_request" && "${{ github.base_ref }}" == "refs/heads/main" ]]; then
-          echo "::set-output name=NAME::prod"
-        else
-          echo "::set-output name=NAME::unknown"
-        fi
-        echo "ENVIRONMENT=${{ steps.env.outputs.NAME }}" >> $GITHUB_ENV
+          echo "EVENT_NAME=${{ github.event_name }}"
+          echo "REF=${{ github.ref }}"
+          echo "BASE_REF=${{ github.base_ref }}"
+          if [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" != "refs/heads/develop" && "${{ github.ref }}" != "refs/heads/main" ]]; then
+            echo "::set-output name=NAME::dev"
+          elif [[ "${{ github.event_name }}" == "pull_request" && "${{ github.base_ref }}" == "refs/heads/develop" ]]; then
+            echo "::set-output name=NAME::test"
+          elif [[ "${{ github.event_name }}" == "pull_request" && "${{ github.base_ref }}" == "refs/heads/main" ]]; then
+            echo "::set-output name=NAME::prod"
+          else
+            echo "::set-output name=NAME::unknown"
+          fi
+          echo "ENVIRONMENT=${{ steps.env.outputs.NAME }}" >> $GITHUB_ENV
 
       - name: Terraform Format
         id: fmt
