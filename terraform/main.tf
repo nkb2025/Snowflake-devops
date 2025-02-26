@@ -29,3 +29,16 @@ resource "snowflake_schema" "demo_tfm_schema" {
   name     = "DEMO_TFM_SCHEMA"
   comment  = "Schema for Snowflake Terraform demo"
 }
+
+resource "snowflake_database" "test_tfm_db" {
+  name    = "TEST_DB"
+  comment = "Database for Snowflake Terraform demo"
+}
+
+
+resource "snowflake_database" "prod_tfm_db" {
+  name    = "PROD_DB"
+  comment = "Database for Snowflake Terraform demo"
+}
+
+

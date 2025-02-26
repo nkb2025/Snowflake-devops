@@ -3,13 +3,15 @@ name: "Snowflake DevOps Workflow"
 on:
   push:
     branches:
+      - '!develop' # Exclude develop
+      - '!main'    # Exclude main
+  pull_request:
+    branches:
+      - develop
       - main
     paths:
       - 'terraform/**'
       - 'migrations/**'
-  pull_request:
-    paths:
-      - 'terraform/**'
 
 jobs:
   snowflake-devops-job:
@@ -24,26 +26,41 @@ jobs:
         with:
           cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
 
+      - name: Determine Environment
+        id: env
+        run: |
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            echo "::set-output name=NAME::dev"
+          elif [[ "${{ github.event_name }}" == "pull_request" && "${{ github.base_ref }}" == "refs/heads/develop" ]]; then
+            echo "::set-output name=NAME::test"
+          elif [[ "${{ github.event_name }}" == "pull_request" && "${{ github.base_ref }}" == "refs/heads/main" ]]; then
+            echo "::set-output name=NAME::prod"
+          else
+            echo "::set-output name=NAME::unknown"
+          fi
+          echo "ENVIRONMENT=${{ steps.env.outputs.NAME }}" >> $GITHUB_ENV
+
       - name: Terraform Format
         id: fmt
         run: terraform fmt -check
+        working-directory: ./terraform
 
       - name: Terraform Init
         id: init
-        working-directory: ./terraform
         run: terraform init
+        working-directory: ./terraform
 
       - name: Terraform Validate
         id: validate
-        working-directory: ./terraform
         run: terraform validate -no-color
+        working-directory: ./terraform
 
       - name: Terraform Plan
         id: plan
-        working-directory: ./terraform
         if: github.event_name == 'pull_request'
         run: terraform plan -no-color
         continue-on-error: true
+        working-directory: ./terraform
 
       - uses: actions/github-script@0.9.0
         if: github.event_name == 'pull_request'
@@ -52,36 +69,16 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const output = `#### Terraform Format and Style 🖌\`${{ steps.fmt.outcome }}\`
-            #### Terraform Initialization ⚙️\`${{ steps.init.outcome }}\`
-            #### Terraform Validation 🤖\`${{ steps.validate.outcome }}\`
-            #### Terraform Plan 📖\`${{ steps.plan.outcome }}\`
-            
-            <details><summary>Show Plan</summary>
-            
-            \`\`\`\n
-            ${process.env.PLAN}
-            \`\`\`
-            
-            </details>
-            
-            *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Working Directory: \`${{ env.tf_actions_working_dir }}\`, Workflow: \`${{ github.workflow }}\`*`;
-            
-            github.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: output
-            })
+            # ... (your existing pull request comment script)
 
       - name: Terraform Plan Status
         if: steps.plan.outcome == 'failure'
         run: exit 1
 
       - name: Terraform Apply
-        working-directory: ./terraform
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        if: github.event_name == 'push'
         run: terraform apply -auto-approve
+        working-directory: ./terraform
 
       - name: Setup Python
         uses: actions/setup-python@v2.2.1
@@ -90,17 +87,17 @@ jobs:
 
       - name: Run schemachange
         env:
-          SF_ACCOUNT: ${{ secrets.SF_ACCOUNT }}
-          SF_USERNAME: ${{ secrets.SF_USERNAME }}
+          SF_ACCOUNT: ${{ secrets[env.ENVIRONMENT == 'dev' && 'SF_ACCOUNT' || env.ENVIRONMENT == 'test' && 'SF_ACCOUNT' || env.ENVIRONMENT == 'prod' && 'SF_ACCOUNT'] }}
+          SF_USERNAME: ${{ secrets[env.ENVIRONMENT == 'dev' && 'SF_USERNAME' || env.ENVIRONMENT == 'test' && 'SF_USERNAME' || env.ENVIRONMENT == 'prod' && 'SF_USERNAME'] }}
           SF_ROLE: ${{ secrets.SF_ROLE }}
-          SF_WAREHOUSE: ${{ secrets.SF_WAREHOUSE }}
-          SF_DATABASE: ${{ secrets.SF_DATABASE }}
-          SNOWFLAKE_PASSWORD: ${{ secrets.SF_PASSWORD }}
+          SF_WAREHOUSE: ${{ secrets[env.ENVIRONMENT == 'dev' && 'SF_WAREHOUSE' || env.ENVIRONMENT == 'test' && 'SF_WAREHOUSE' || env.ENVIRONMENT == 'prod' && 'SF_WAREHOUSE'] }}
+          SF_DATABASE: ${{ secrets[env.ENVIRONMENT == 'dev' && 'DEV_SF_DATABASE' || env.ENVIRONMENT == 'test' && 'TEST_SF_DATABASE' || env.ENVIRONMENT == 'prod' && 'PROD_SF_DATABASE'] }}
+          SNOWFLAKE_PASSWORD: ${{ secrets[env.ENVIRONMENT == 'dev' && 'SF_PASSWORD' || env.ENVIRONMENT == 'test' && 'SF_PASSWORD' || env.ENVIRONMENT == 'prod' && 'SF_PASSWORD'] }}
         run: |
           echo "GITHUB_WORKSPACE: $GITHUB_WORKSPACE"
           python --version
           echo "Step 1: Installing schemachange"
           pip install schemachange
           
-          echo "Step 2: Running schemachange"
+          echo "Step 2: Running schemachange for ${{ env.ENVIRONMENT }}"
           schemachange -f $GITHUB_WORKSPACE/migrations -a $SF_ACCOUNT -u $SF_USERNAME -r $SF_ROLE -w $SF_WAREHOUSE -d $SF_DATABASE -c $SF_DATABASE.SCHEMACHANGE.CHANGE_HISTORY --create-change-history-table
