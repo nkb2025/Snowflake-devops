@@ -19,16 +19,10 @@ provider "snowflake" {
 }
 
 resource "snowflake_database" "demo_tfm_db" {
-  name    = "DEMO_TFM_DB"
+  name    = "DEMO_DB"
   comment = "Database for Snowflake Terraform demo"
 }
 
-
-resource "snowflake_schema" "demo_tfm_schema" {
-  database = snowflake_database.demo_tfm_db.name
-  name     = "DEMO_TFM_SCHEMA"
-  comment  = "Schema for Snowflake Terraform demo"
-}
 
 resource "snowflake_database" "test_tfm_db" {
   name    = "TEST_DB"
