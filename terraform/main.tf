@@ -23,10 +23,7 @@ resource "snowflake_database" "demo_tfm_db" {
   comment = "Dev Database for Snowflake Terraform demo"
 }
 
-resource "snowflake_database" "demo_tfm_db" {
-  name    = "DEV_DB"
-  comment = "Dev Database for Snowflake Terraform demo"
-}
+
 
 
 resource "snowflake_database" "test_tfm_db" {
