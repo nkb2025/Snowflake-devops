@@ -34,15 +34,13 @@ jobs:
           echo "REF=${{ github.ref }}"
           echo "BASE_REF=${{ github.base_ref }}"
           if [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" != "refs/heads/develop" && "${{ github.ref }}" != "refs/heads/main" ]]; then
-            echo "::set-output name=NAME::dev"
+            echo "NAME=dev" >> $GITHUB_ENV
           elif [[ "${{ github.event_name }}" == "pull_request" && "${{ github.base_ref }}" == "refs/heads/develop" ]]; then
-            echo "::set-output name=NAME::test"
+            echo "NAME=test" >> $GITHUB_ENV
           elif [[ "${{ github.event_name }}" == "pull_request" && "${{ github.base_ref }}" == "refs/heads/main" ]]; then
-            echo "::set-output name=NAME::prod"
+            echo "NAME=prod" >> $GITHUB_ENV
           else
-            echo "::set-output name=NAME::unknown"
-          fi
-          echo "ENVIRONMENT=${{ steps.env.outputs.NAME }}" >> $GITHUB_ENV
+            echo "NAME=unknown" >> $GITHUB_ENV
 
       - name: Terraform Format
         id: fmt
@@ -90,25 +88,25 @@ jobs:
           python-version: 3.8.x
 
       - name: Debug Environment
-        run: echo "ENVIRONMENT=${{ env.ENVIRONMENT }}"
+        run: echo "ENVIRONMENT=${{ env.NAME }}"
 
       - name: Run schemachange
         env:
-          SF_ACCOUNT: ${{ secrets[env.ENVIRONMENT == 'dev' && 'SF_ACCOUNT' || env.ENVIRONMENT == 'test' && 'SF_ACCOUNT' || env.ENVIRONMENT == 'prod' && 'SF_ACCOUNT'] }}
-          SF_USERNAME: ${{ secrets[env.ENVIRONMENT == 'dev' && 'SF_USERNAME' || env.ENVIRONMENT == 'test' && 'SF_USERNAME' || env.ENVIRONMENT == 'prod' && 'SF_USERNAME'] }}
+          SF_ACCOUNT: ${{ secrets[env.NAME == 'dev' && 'SF_ACCOUNT' || env.NAME == 'test' && 'SF_ACCOUNT' || env.NAME == 'prod' && 'SF_ACCOUNT'] }}
+          SF_USERNAME: ${{ secrets[env.NAME == 'dev' && 'SF_USERNAME' || env.NAME == 'test' && 'SF_USERNAME' || env.NAME == 'prod' && 'SF_USERNAME'] }}
           SF_ROLE: ${{ secrets.SF_ROLE }}
-          SF_WAREHOUSE: ${{ secrets[env.ENVIRONMENT == 'dev' && 'SF_WAREHOUSE' || env.ENVIRONMENT == 'test' && 'SF_WAREHOUSE' || env.ENVIRONMENT == 'prod' && 'SF_WAREHOUSE'] }}
-          SF_DATABASE: ${{ secrets[env.ENVIRONMENT == 'dev' && 'DEV_SF_DATABASE' || env.ENVIRONMENT == 'test' && 'TEST_SF_DATABASE' || env.ENVIRONMENT == 'prod' && 'PROD_SF_DATABASE'] }}
-          SNOWFLAKE_PASSWORD: ${{ secrets[env.ENVIRONMENT == 'dev' && 'SF_PASSWORD' || env.ENVIRONMENT == 'test' && 'SF_PASSWORD' || env.ENVIRONMENT == 'prod' && 'SF_PASSWORD'] }}
+          SF_WAREHOUSE: ${{ secrets[env.NAME == 'dev' && 'SF_WAREHOUSE' || env.NAME == 'test' && 'SF_WAREHOUSE' || env.NAME == 'prod' && 'SF_WAREHOUSE'] }}
+          SF_DATABASE: ${{ secrets[env.NAME == 'dev' && 'DEV_SF_DATABASE' || env.NAME == 'test' && 'TEST_SF_DATABASE' || env.NAME == 'prod' && 'PROD_SF_DATABASE'] }}
+          SNOWFLAKE_PASSWORD: ${{ secrets[env.NAME == 'dev' && 'SF_PASSWORD' || env.NAME == 'test' && 'SF_PASSWORD' || env.NAME == 'prod' && 'SF_PASSWORD'] }}
         run: |
           echo "GITHUB_WORKSPACE: $GITHUB_WORKSPACE"
           python --version
           echo "Step 1: Installing schemachange"
           pip install schemachange
-          echo "DEBUG: SF_ACCOUNT=${{ secrets[env.ENVIRONMENT == 'dev' && 'SF_ACCOUNT' || env.ENVIRONMENT == 'test' && 'SF_ACCOUNT' || env.ENVIRONMENT == 'prod' && 'SF_ACCOUNT'] }}"
-          echo "DEBUG: SF_USERNAME=${{ secrets[env.ENVIRONMENT == 'dev' && 'SF_USERNAME' || env.ENVIRONMENT == 'test' && 'SF_USERNAME' || env.ENVIRONMENT == 'prod' && 'SF_USERNAME'] }}"
-          echo "DEBUG: SF_WAREHOUSE=${{ secrets[env.ENVIRONMENT == 'dev' && 'SF_WAREHOUSE' || env.ENVIRONMENT == 'test' && 'SF_WAREHOUSE' || env.ENVIRONMENT == 'prod' && 'SF_WAREHOUSE'] }}"
-          echo "DEBUG: SF_DATABASE=${{ secrets[env.ENVIRONMENT == 'dev' && 'DEV_SF_DATABASE' || env.ENVIRONMENT == 'test' && 'TEST_SF_DATABASE' || env.ENVIRONMENT == 'prod' && 'PROD_SF_DATABASE'] }}"
-          echo "DEBUG: SNOWFLAKE_PASSWORD=${{ secrets[env.ENVIRONMENT == 'dev' && 'SF_PASSWORD' || env.ENVIRONMENT == 'test' && 'SF_PASSWORD' || env.ENVIRONMENT == 'prod' && 'SF_PASSWORD'] }}"
-          echo "Step 2: Running schemachange for ${{ env.ENVIRONMENT }}"
+          echo "DEBUG: SF_ACCOUNT=${{ secrets[env.NAME == 'dev' && 'SF_ACCOUNT' || env.NAME == 'test' && 'SF_ACCOUNT' || env.NAME == 'prod' && 'SF_ACCOUNT'] }}"
+          echo "DEBUG: SF_USERNAME=${{ secrets[env.NAME == 'dev' && 'SF_USERNAME' || env.NAME == 'test' && 'SF_USERNAME' || env.NAME == 'prod' && 'SF_USERNAME'] }}"
+          echo "DEBUG: SF_WAREHOUSE=${{ secrets[env.NAME == 'dev' && 'SF_WAREHOUSE' || env.NAME == 'test' && 'SF_WAREHOUSE' || env.NAME == 'prod' && 'SF_WAREHOUSE'] }}"
+          echo "DEBUG: SF_DATABASE=${{ secrets[env.NAME == 'dev' && 'DEV_SF_DATABASE' || env.NAME == 'test' && 'TEST_SF_DATABASE' || env.NAME == 'prod' && 'PROD_SF_DATABASE'] }}"
+          echo "DEBUG: SNOWFLAKE_PASSWORD=${{ secrets[env.NAME == 'dev' && 'SF_PASSWORD' || env.NAME == 'test' && 'SF_PASSWORD' || env.NAME == 'prod' && 'SF_PASSWORD'] }}"
+          echo "Step 2: Running schemachange for ${{ env.NAME }}"
           schemachange -f $GITHUB_WORKSPACE/migrations -a $SF_ACCOUNT -u $SF_USERNAME -r $SF_ROLE -w $SF_WAREHOUSE -d $SF_DATABASE -c $SF_DATABASE.SCHEMACHANGE.CHANGE_HISTORY --create-change-history-table
