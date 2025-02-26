@@ -99,6 +99,11 @@ jobs:
           python --version
           echo "Step 1: Installing schemachange"
           pip install schemachange
-          
+          echo "DEBUG: SF_ACCOUNT=${{ secrets[env.ENVIRONMENT == 'dev' && 'SF_ACCOUNT' || env.ENVIRONMENT == 'test' && 'SF_ACCOUNT' || env.ENVIRONMENT == 'prod' && 'SF_ACCOUNT'] }}"
+          echo "DEBUG: SF_USERNAME=${{ secrets[env.ENVIRONMENT == 'dev' && 'SF_USERNAME' || env.ENVIRONMENT == 'test' && 'SF_USERNAME' || env.ENVIRONMENT == 'prod' && 'SF_USERNAME'] }}"
+          echo "DEBUG: SF_WAREHOUSE=${{ secrets[env.ENVIRONMENT == 'dev' && 'SF_WAREHOUSE' || env.ENVIRONMENT == 'test' && 'SF_WAREHOUSE' || env.ENVIRONMENT == 'prod' && 'SF_WAREHOUSE'] }}"
+          echo "DEBUG: SF_DATABASE=${{ secrets[env.ENVIRONMENT == 'dev' && 'DEV_SF_DATABASE' || env.ENVIRONMENT == 'test' && 'TEST_SF_DATABASE' || env.ENVIRONMENT == 'prod' && 'PROD_SF_DATABASE'] }}"
+          echo "DEBUG: SNOWFLAKE_PASSWORD=${{ secrets[env.ENVIRONMENT == 'dev' && 'SF_PASSWORD' || env.ENVIRONMENT == 'test' && 'SF_PASSWORD' || env.ENVIRONMENT == 'prod' && 'SF_PASSWORD'] }}"
+                
           echo "Step 2: Running schemachange for ${{ env.ENVIRONMENT }}"
           schemachange -f $GITHUB_WORKSPACE/migrations -a $SF_ACCOUNT -u $SF_USERNAME -r $SF_ROLE -w $SF_WAREHOUSE -d $SF_DATABASE -c $SF_DATABASE.SCHEMACHANGE.CHANGE_HISTORY --create-change-history-table
