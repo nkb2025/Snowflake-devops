@@ -17,6 +17,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
+      - name: Use Python 3.8.x
+        uses: actions/setup-python@v2.2.1
+        with:
+          python-version : 3.8.x
+
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v1
         with:
