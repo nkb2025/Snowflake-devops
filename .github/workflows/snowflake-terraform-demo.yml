@@ -33,9 +33,10 @@ jobs:
           echo "EVENT_NAME=${{ github.event_name }}"
           echo "REF=${{ github.ref }}"
           echo "BASE_REF=${{ github.base_ref }}"
+          echo "HEAD_REF=${{ github.head_ref }}"          
           if [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" != "refs/heads/develop" && "${{ github.ref }}" != "refs/heads/main" ]]; then
             echo "NAME=dev" >> $GITHUB_ENV
-          elif [[ "${{ github.event_name }}" == "pull_request" && "${{ github.base_ref }}" == "refs/heads/develop" ]]; then
+          elif [[ "${{ github.event_name }}" == "pull_request" && "${{ github.base_ref }}" == "develop" ]]; then
             echo "NAME=test" >> $GITHUB_ENV
           elif [[ "${{ github.event_name }}" == "pull_request" && "${{ github.base_ref }}" == "refs/heads/main" ]]; then
             echo "NAME=prod" >> $GITHUB_ENV
