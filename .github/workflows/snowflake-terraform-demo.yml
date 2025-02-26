@@ -33,18 +33,17 @@ jobs:
           echo "EVENT_NAME=${{ github.event_name }}"
           echo "REF=${{ github.ref }}"
           echo "BASE_REF=${{ github.base_ref }}"
-          echo "HEAD_REF=${{ github.head_ref }}"          
+          echo "HEAD_REF=${{ github.head_ref }}"
           if [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" != "refs/heads/develop" && "${{ github.ref }}" != "refs/heads/main" ]]; then
             echo "NAME=dev" >> $GITHUB_ENV
           elif [[ "${{ github.event_name }}" == "pull_request" && "${{ github.base_ref }}" == "develop" ]]; then
             echo "NAME=test" >> $GITHUB_ENV
-          elif [[ "${{ github.event_name }}" == "pull_request" && "${{ github.base_ref }}" == "refs/heads/main" ]]; then
+          elif [[ "${{ github.event_name }}" == "pull_request" && "${{ github.base_ref }}" == "main" ]]; then
             echo "NAME=prod" >> $GITHUB_ENV
           else
             echo "NAME=unknown" >> $GITHUB_ENV
           fi
 
-          
       - name: Terraform Format
         id: fmt
         run: terraform fmt -check
@@ -71,8 +70,13 @@ jobs:
         if: steps.plan.outcome == 'failure'
         run: exit 1
 
-      - name: Terraform Apply
-        if: github.event_name == 'push'
+      - name: Terraform Apply (Dev)
+        if: github.event_name == 'push' && env.NAME == 'dev'
+        run: terraform apply -auto-approve
+        working-directory: ./terraform
+
+      - name: Terraform Apply (Test/Prod)
+        if: github.event_name == 'pull_request' && (env.NAME == 'test' || env.NAME == 'prod')
         run: terraform apply -auto-approve
         working-directory: ./terraform
 
@@ -86,21 +90,17 @@ jobs:
 
       - name: Run schemachange
         env:
-          SF_ACCOUNT: ${{ secrets[env.NAME == 'dev' && 'SF_ACCOUNT' || env.NAME == 'test' && 'SF_ACCOUNT' || env.NAME == 'prod' && 'SF_ACCOUNT'] }}
-          SF_USERNAME: ${{ secrets[env.NAME == 'dev' && 'SF_USERNAME' || env.NAME == 'test' && 'SF_USERNAME' || env.NAME == 'prod' && 'SF_USERNAME'] }}
+          SF_ACCOUNT: ${{ secrets.SF_ACCOUNT }}
+          SF_USERNAME: ${{ secrets.SF_USERNAME }}
           SF_ROLE: ${{ secrets.SF_ROLE }}
-          SF_WAREHOUSE: ${{ secrets[env.NAME == 'dev' && 'SF_WAREHOUSE' || env.NAME == 'test' && 'SF_WAREHOUSE' || env.NAME == 'prod' && 'SF_WAREHOUSE'] }}
-          SF_DATABASE: ${{ secrets[env.NAME == 'dev' && 'DEV_SF_DATABASE' || env.NAME == 'test' && 'TEST_SF_DATABASE' || env.NAME == 'prod' && 'PROD_SF_DATABASE'] }}
-          SNOWFLAKE_PASSWORD: ${{ secrets[env.NAME == 'dev' && 'SF_PASSWORD' || env.NAME == 'test' && 'SF_PASSWORD' || env.NAME == 'prod' && 'SF_PASSWORD'] }}
+          SF_WAREHOUSE: ${{ secrets.SF_WAREHOUSE }}
+          SF_DATABASE: ${{ secrets[format('{0}_SF_DATABASE', env.NAME == 'dev' && 'DEV' || env.NAME == 'test' && 'TEST' || env.NAME == 'prod' && 'PROD')] }}
+          SNOWFLAKE_PASSWORD: ${{ secrets.SF_PASSWORD }}
         run: |
           echo "GITHUB_WORKSPACE: $GITHUB_WORKSPACE"
           python --version
           echo "Step 1: Installing schemachange"
           pip install schemachange
-          echo "DEBUG: SF_ACCOUNT=${{ secrets[env.NAME == 'dev' && 'SF_ACCOUNT' || env.NAME == 'test' && 'SF_ACCOUNT' || env.NAME == 'prod' && 'SF_ACCOUNT'] }}"
-          echo "DEBUG: SF_USERNAME=${{ secrets[env.NAME == 'dev' && 'SF_USERNAME' || env.NAME == 'test' && 'SF_USERNAME' || env.NAME == 'prod' && 'SF_USERNAME'] }}"
-          echo "DEBUG: SF_WAREHOUSE=${{ secrets[env.NAME == 'dev' && 'SF_WAREHOUSE' || env.NAME == 'test' && 'SF_WAREHOUSE' || env.NAME == 'prod' && 'SF_WAREHOUSE'] }}"
-          echo "DEBUG: SF_DATABASE=${{ secrets[env.NAME == 'dev' && 'DEV_SF_DATABASE' || env.NAME == 'test' && 'TEST_SF_DATABASE' || env.NAME == 'prod' && 'PROD_SF_DATABASE'] }}"
-          echo "DEBUG: SNOWFLAKE_PASSWORD=${{ secrets[env.NAME == 'dev' && 'SF_PASSWORD' || env.NAME == 'test' && 'SF_PASSWORD' || env.NAME == 'prod' && 'SF_PASSWORD'] }}"
+
           echo "Step 2: Running schemachange for ${{ env.NAME }}"
           schemachange -f $GITHUB_WORKSPACE/migrations -a $SF_ACCOUNT -u $SF_USERNAME -r $SF_ROLE -w $SF_WAREHOUSE -d $SF_DATABASE -c $SF_DATABASE.SCHEMACHANGE.CHANGE_HISTORY --create-change-history-table
