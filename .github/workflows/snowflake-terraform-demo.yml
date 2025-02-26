@@ -73,23 +73,23 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const { GITHUB_WORKSPACE } = process.env;
-            const fs = require('fs');
-
+            const { context, getOctokit } = require('@actions/github');
+            const githubToken = process.env.GITHUB_TOKEN;
+            const octokit = getOctokit(githubToken);
+            
             const planOutput = process.env.PLAN;
-            const pr = github.context.payload.pull_request;
-            const issueComment = github.getOctokit(githubToken);
-
+            const pr = context.payload.pull_request;
+            
             if (!pr) {
               throw new Error("Could not find PR context.");
             }
-
-            await issueComment.rest.issues.createComment({
-              ...github.context.repo,
+      
+            await octokit.rest.issues.createComment({
+              ...context.repo,
               issue_number: pr.number,
               body: `### Terraform Plan Output\n\`\`\`terraform\n${planOutput}\n\`\`\``
             });
-
+      
 
       - name: Terraform Plan Status
         if: steps.plan.outcome == 'failure'
